@@ -1,0 +1,17 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() { return request.auth != null; }
+    function hasAnyRole(roles) { return isSignedIn() && roles.hasAny([request.auth.token.role]); }
+
+    match /logos/{allPaths=**} {
+      allow read: if true; // public logos
+      allow write: if hasAnyRole(['super_admin', 'admin', 'recruiter']);
+    }
+
+    match /resumes/{userId}/{fileId} {
+      allow read: if hasAnyRole(['super_admin', 'admin']) || (isSignedIn() && request.auth.uid == userId);
+      allow write: if isSignedIn() && request.auth.uid == userId; // users upload their own resume
+    }
+  }
+}
